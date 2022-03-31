@@ -5,6 +5,8 @@ const readline = require('readline').createInterface({
     output: process.stdout
 });
 
+var colors = require('colors/safe');
+
 const io = require('socket.io-client');
 
 let socket;
@@ -31,11 +33,16 @@ async function Start(){
     
 }
 
+function LogConsole(str){
+    console.log(colors.red("[UNO] ") + str);
+}
+
 function Events(socket){
-    socket.on("disconnect", () => {console.log("Desconectado!");});
-    socket.on("join", (userData) => {console.log(userData.name + " entrou na sala!")})
-    socket.on("left", (left) => {console.log("Faltam " + left + " jogador(es) para iniciar a partida!")})
-    socket.on("starting", (countdown) => {console.log("Iniciando em " + countdown + " segundo(s)")})
+    socket.on("disconnect", () => {LogConsole("Desconectado!");});
+    socket.on("join", (userData) => {LogConsole("'" +userData.name + "' entrou na sala!")})
+    socket.on("left", (left) => {LogConsole("Faltam " + left + " jogador(es) para iniciar a partida!")})
+    socket.on("starting", (countdown) => {LogConsole("Iniciando em " + countdown + " segundo(s)")})
+    socket.on("show cards", (data) => {LogConsole(data.length)})
 }
 
 Start();

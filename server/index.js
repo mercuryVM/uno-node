@@ -6,6 +6,31 @@ const io = require("socket.io")(httpServer, {
 const uuid = require('uuid');
 
 const minUsersStart = 1;
+const playerNumberCards = 7;
+
+function randomNumber(min, max){
+  return Math.floor((Math.random() * (max - min + 1)) + min);
+}
+
+class Carta {
+  constructor(color, number){
+    this.number = number;
+    this.color = color;
+  }
+
+  id(){
+    let formatColor = "NaN";
+
+    switch(this.color){
+      case 0: formatColor = "r"; break;
+      case 1: formatColor = "g"; break;
+      case 2: formatColor = "b"; break;
+      case 3: formatColor = "y"; break;
+    }
+
+    return formatColor + "" + this.number;
+  }
+}
 
 class Room {
   constructor(roomID){
@@ -24,6 +49,44 @@ class Room {
     }
   }
 
+  UserArray(){
+    let iterator = this.users.values();
+    let arr = [];
+
+    for(let i = 0; i < this.users.size; i++){
+     arr.push(iterator.next()); 
+    }
+
+    return arr;
+  }
+
+  GetClientCards(user){
+    let arr = [];
+    for(let i = 0; i < user.cards.length; i++){
+      arr.push(user.cards[i].id());
+    }
+
+    return arr;
+  }
+
+  GiveCardsToEveryone(){
+    let everyone = this.UserArray();
+
+    for(let i = 0; i < everyone.length; i++){
+      let user = everyone[i].value;
+      if(!user.cards) user.cards = [];
+      for(let i2 = 0; i2 < playerNumberCards; i2++){
+        user.cards.push(this.GetRandomCard());
+      }
+
+      user.emit("show cards", this.GetClientCards(user));
+    }
+  }
+
+  StartMatch(){
+    this.GiveCardsToEveryone();
+  }
+
   CanStart(){
     if(this.users.size >= minUsersStart){
       let countdown = 20;
@@ -33,11 +96,21 @@ class Room {
         countdown--;
         if(countdown == 0) {
           clearInterval(timer);
+
+          this.StartMatch();
+
         }
       }, 1000)
     }else{
       io.to(this.roomID).emit("left", minUsersStart - this.users.size);
     }
+  }
+
+  GetRandomCard(){
+    let color = randomNumber(0, 3);
+    let number = randomNumber(1, 9);
+
+    return new Carta(color, number);
   }
 }
 
