@@ -12,6 +12,19 @@ function randomNumber(min, max){
   return Math.floor((Math.random() * (max - min + 1)) + min);
 }
 
+function ConvertCard(color, number){
+  let formatColor = -1;
+  
+  switch(color){
+    case "r": formatColor = 0; break;
+    case "g": formatColor = 1; break;
+    case "b": formatColor = 2; break;
+    case "y": formatColor = 3; break;
+  }
+
+  return new Carta(formatColor, number);
+}
+
 class Carta {
   constructor(color, number){
     this.number = number;
@@ -36,6 +49,8 @@ class Room {
   constructor(roomID){
     this.roomID = roomID;
     this.users = new Map();
+    this.currentCard = false;
+    this.currentTurn = 0;
   }
 
   JoinUser(userID, socket){
@@ -79,17 +94,36 @@ class Room {
         user.cards.push(this.GetRandomCard());
       }
 
-      user.emit("show cards", this.GetClientCards(user));
+      this.ShowCards(user);
     }
   }
 
+  ShowCards(user){
+    if(user) user.emit("show cards", this.GetClientCards(user));
+  }
+
   StartMatch(){
+    this.currentCard = this.GetRandomCard();
     this.GiveCardsToEveryone();
+    this.currentTurn = -1;
+    this.PassTurn(true);
+  }
+
+  PassTurn(first){
+    this.currentTurn++;
+    if(this.currentTurn == this.users.size) this.currentTurn = 0;
+
+    let playerRound = this.UserArray()[this.currentTurn].value;
+    if(!playerRound) this.PassTurn();
+    else {
+      playerRound.emit("round your", this.currentCard.id());
+      if(!first) this.ShowCards(playerRound);
+    }
   }
 
   CanStart(){
     if(this.users.size >= minUsersStart){
-      let countdown = 20;
+      let countdown = 2;
       io.to(this.roomID).emit("starting", countdown);
       let timer = setInterval(() => {
         if(countdown <= 10) io.to(this.roomID).emit("starting", countdown)
@@ -137,6 +171,64 @@ io.on("connection", (socket) => {
   socket.join(roomID);
 
   currentRoom.JoinUser(uniqueID, socket);
+
+
+  function IsAValidCard(card){
+    if(card.length != 2){
+        return false;
+    }
+
+    let color = card[0];
+    let number = card[1];
+
+    if(color != "r" && color != "y" && color != "g" && color != "b") return false;
+
+    if(isNaN(number)) return false;
+
+    return true;
+}
+
+function CanPlay(card){
+  return card[0] == currentRoom.currentCard.id()[0] || card[1] == currentRoom.currentCard.id()[1];
+}
+
+  socket.on("play", (card) => {
+    if(!card) return;
+
+    if(card == "draw"){
+      let drawed = currentRoom.GetRandomCard();
+      socket.cards.push(drawed);
+      socket.emit("draw", drawed.id());
+      currentRoom.PassTurn(false);
+      return;
+    }
+
+    if(!IsAValidCard(card)) return;
+
+    if(!CanPlay(card)) {
+      socket.emit("cantplay", currentRoom.currentCard.id());
+      return;
+    }
+
+    let cardObj = ConvertCard(card[0], card[1]);
+
+    let newCardArray = socket.cards.filter((a) => {
+      return !(a.number == cardObj.number && a.color == cardObj.color);
+    });
+
+    socket.cards = newCardArray;
+
+    let everyone = currentRoom.UserArray();
+
+    for(let i = 0; i < everyone.length; i++){
+      let user = everyone[i].value;
+      user.emit("player play", name, cardObj.id());
+    }
+
+    currentRoom.currentCard = cardObj;
+
+    currentRoom.PassTurn(false);
+  })
 });
 
 httpServer.listen(3000);
