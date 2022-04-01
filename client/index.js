@@ -13,7 +13,7 @@ let socket;
 
 function Question(str){
     return new Promise((resolve) => {
-        readline.question(str, (answer) => resolve(answer));
+        readline.question(str + "\n", (answer) => resolve(answer));
     })
 }
 
