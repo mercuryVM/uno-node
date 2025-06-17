@@ -28,31 +28,36 @@
 ### 1. Clone o repositório
 
 ```bash
-git clone https://github.com/seu-usuario/uno-node.git
+git clone https://github.com/mercuryVM/uno-node.git
 cd uno-node
+```
 
 2. Instale as dependências
 
+```
 npm install
+```
 
 3. Configure o endereço do servidor
 
 Edite o arquivo config.json com o IP do servidor:
 
+```
 {
   "ip": "http://localhost:3000"
 }
+```
 
 > Obs: você pode usar IPs de rede local para jogar com amigos no mesmo Wi-Fi.
-
-
 
 
 ---
 
 4. Inicie o servidor
 
+```
 node server.js
+```
 
 (Certifique-se que ele está escutando e pronto para aceitar conexões)
 
@@ -61,7 +66,9 @@ node server.js
 
 5. Inicie um cliente (em outro terminal)
 
+```
 node client.js
+```
 
 Digite seu nome
 
